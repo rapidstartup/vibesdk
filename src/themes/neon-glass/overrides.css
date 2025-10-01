@@ -1,0 +1,132 @@
+/* Neon Glass Theme: blue/green palette + subtle glassmorphism */
+
+/*
+  Approach:
+  - Use the existing CSS variable system in src/index.css
+  - Only override variables and high-level surfaces via [data-slot] hooks
+  - Keep changes modest to avoid layout regressions
+*/
+
+:root {
+  /* Primary brand hues */
+  --build-accent-color: #00e5ff; /* neon cyan */
+
+  /* Light mode base surfaces */
+  --build-chat-colors-bg-1: #e9fbff; /* very light cyan tint */
+  --build-chat-colors-bg-2: #f2fdff; /* paper-like */
+  --build-chat-colors-bg-3: #ffffff; /* main surface */
+  --build-chat-colors-bg-4: #ffffff;
+
+  /* Borders + text */
+  --build-chat-colors-border-primary: #d6f7ff;
+  --build-chat-colors-border-secondary: #e3faff;
+  --build-chat-colors-border-tertiary: #e9fcff;
+  --build-chat-colors-text-primary: #031a1f;
+  --build-chat-colors-text-secondary: #0c2a31;
+  --build-chat-colors-text-tertiary: #0c2a31cc;
+
+  /* Brand gradient endpoints (for subtle glows) */
+  --neon-blue: #00e5ff; /* cyan */
+  --neon-green: #00ffa3; /* neon green */
+}
+
+.dark {
+  /* Dark mode surfaces */
+  --build-chat-colors-bg-1: #07161a; /* deep teal/blue */
+  --build-chat-colors-bg-2: #0a1c21;
+  --build-chat-colors-bg-3: #0e2329;
+  --build-chat-colors-bg-4: #112a31;
+
+  --build-chat-colors-border-primary: #16343c;
+  --build-chat-colors-border-secondary: #1a3d46;
+  --build-chat-colors-border-tertiary: #1e454f;
+
+  /* Accents shift slightly toward green for contrast on dark */
+  --build-chat-colors-brand-heavy: var(--neon-green);
+  --build-chat-colors-brand-primary: var(--neon-blue);
+  --build-chat-colors-brand-subtle: #66fff1;
+
+  --build-chat-colors-text-inverted: #031a1f;
+  --build-chat-colors-text-primary: #e6fffb;
+  --build-chat-colors-text-secondary: #c6fffb;
+  --build-chat-colors-text-tertiary: #a1f5ee;
+}
+
+/* Glassmorphism: apply to key surfaces via data-slot markers */
+
+/* Cards */
+[data-slot="card"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-bg-4) 85%, var(--neon-blue) 15%) 0%,
+    color-mix(in oklab, var(--color-bg-4) 90%, var(--neon-green) 10%) 100%
+  );
+  border: 1px solid color-mix(in oklab, var(--color-border-primary) 70%, var(--neon-blue) 30%);
+  box-shadow: 0 8px 32px 0 rgba(0, 229, 255, 0.08);
+  backdrop-filter: saturate(140%) blur(8px);
+}
+
+/* Dialog content */
+[data-slot="dialog-content"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-bg-3) 80%, var(--neon-blue) 20%) 0%,
+    color-mix(in oklab, var(--color-bg-3) 85%, var(--neon-green) 15%) 100%
+  );
+  border: 1px solid color-mix(in oklab, var(--color-border-primary) 60%, var(--neon-green) 40%);
+  box-shadow: 0 10px 40px rgba(0, 255, 163, 0.08), 0 0 0 1px rgba(0, 229, 255, 0.06) inset;
+  backdrop-filter: saturate(140%) blur(10px);
+}
+
+/* Sidebar container and inner */
+[data-slot="sidebar-container"],
+[data-slot="sidebar-inner"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-bg-2) 82%, var(--neon-blue) 18%) 0%,
+    color-mix(in oklab, var(--color-bg-2) 86%, var(--neon-green) 14%) 100%
+  );
+  border-right: 1px solid color-mix(in oklab, var(--color-border-primary) 60%, var(--neon-blue) 40%);
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.04) inset;
+  backdrop-filter: saturate(140%) blur(8px);
+}
+
+/* Global header wrapper for subtle translucent look */
+header.sticky.top-0.z-50 > div > div.relative.flex.items-center {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-bg-3) 80%, var(--neon-blue) 20%) 0%,
+    color-mix(in oklab, var(--color-bg-3) 90%, var(--neon-green) 10%) 100%
+  );
+  backdrop-filter: saturate(140%) blur(8px);
+}
+
+/* Accent elements and hover states */
+.a-tag a,
+.text-brand,
+[data-slot="sidebar-menu-button"][data-active="true"] {
+  color: var(--neon-blue);
+}
+
+[data-slot="sidebar-menu-button"]:hover,
+[data-slot="sidebar-menu-action"]:hover {
+  background-color: color-mix(in oklab, var(--color-bg-2) 70%, var(--neon-blue) 30%);
+}
+
+/* Buttons that use accent background should lean into neon cyan */
+.bg-accent {
+  background-color: var(--neon-blue) !important;
+}
+
+/* Optional: glowing focus ring */
+*:focus-visible {
+  outline-color: color-mix(in oklab, var(--neon-blue) 60%, var(--neon-green) 40%);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--neon-blue) 40%, var(--neon-green) 60%) / 30% !important;
+}
+
+
+
+
+
+
+

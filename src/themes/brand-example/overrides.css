@@ -1,0 +1,53 @@
+/* Example brand theme overrides */
+
+:root {
+  /* Brand accents */
+  --build-accent-color: #7c3aed; /* violet-600 */
+
+  /* Light mode chat palette */
+  --build-chat-colors-bg-1: #f4f3ff;
+  --build-chat-colors-bg-2: #faf9ff;
+  --build-chat-colors-bg-3: #ffffff;
+  --build-chat-colors-bg-4: #ffffff;
+  --build-chat-colors-border-primary: #e8e4ff;
+  --build-chat-colors-border-secondary: #eeeaff;
+  --build-chat-colors-border-tertiary: #f1eeff;
+  --build-chat-colors-danger: #e11d48;
+  --build-chat-colors-brand-heavy: #6d28d9;
+  --build-chat-colors-brand-primary: #7c3aed;
+  --build-chat-colors-brand-subtle: #a78bfa;
+  --build-chat-colors-text-inverted: #ffffff;
+  --build-chat-colors-text-primary: #0b0614;
+  --build-chat-colors-text-secondary: #1e1630;
+  --build-chat-colors-text-tertiary: #2a1f44cc;
+}
+
+.dark {
+  /* Dark mode surface + text */
+  --build-chat-colors-bg-1: #0e0a16;
+  --build-chat-colors-bg-2: #141025;
+  --build-chat-colors-bg-3: #1a1430;
+  --build-chat-colors-bg-4: #231b40;
+  --build-chat-colors-border-primary: #2a214d;
+  --build-chat-colors-border-secondary: #352966;
+  --build-chat-colors-border-tertiary: #3c2e73;
+  --build-chat-colors-brand-heavy: #a78bfa;
+  --build-chat-colors-brand-primary: #8b5cf6;
+  --build-chat-colors-brand-subtle: #6d28d9;
+  --build-chat-colors-text-inverted: #0a0514;
+  --build-chat-colors-text-primary: #f5f3ff;
+  --build-chat-colors-text-secondary: #dbd6ff;
+  --build-chat-colors-text-tertiary: #bfb6ff;
+}
+
+/* Optional: tweak custom effects */
+.chat-edge-throb {
+  border-radius: 0.75rem;
+}
+
+
+
+
+
+
+

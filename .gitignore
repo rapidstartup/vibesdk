@@ -48,3 +48,8 @@ debug-tools/*.json
 # Sentry Config File
 .env.sentry-build-plugin
 data-dump
+
+# Theme overlay generated file
+src/themes/active-theme.css
+
+secrets.json

@@ -726,6 +726,16 @@ Message: ${message.errors.map((e: any) => e.message).join('\n').trim()}`;
             }
 
             default:
+                // Suppress noisy state snapshots from agent
+                if (typeof message.type === 'string' && (
+                    message.type.includes('cf_agent_state') ||
+                    message.type.includes('cf_agent_mcp_servers') ||
+                    message.type.includes('command_executing') ||
+                    message.type.includes('static_analysis_results') ||
+                    message.type.includes('screenshot_capture_started')
+                )) {
+                    break;
+                }
                 logger.warn('Unhandled message:', message);
         }
     };

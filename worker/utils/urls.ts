@@ -5,11 +5,15 @@ export const getProtocolForHost = (host: string): string => {
         return 'https';
     }
 }
+function stripScheme(domain: string): string {
+    if (!domain) return domain;
+    return domain.replace(/^https?:\/\//i, '');
+}
 export function getPreviewDomain(env: Env): string {
-    if (env.CUSTOM_PREVIEW_DOMAIN && env.CUSTOM_PREVIEW_DOMAIN.trim() !== '') {
-        return env.CUSTOM_PREVIEW_DOMAIN;
-    }
-    return env.CUSTOM_DOMAIN;
+    const configured = (env.CUSTOM_PREVIEW_DOMAIN && env.CUSTOM_PREVIEW_DOMAIN.trim() !== '')
+        ? env.CUSTOM_PREVIEW_DOMAIN
+        : env.CUSTOM_DOMAIN;
+    return stripScheme(configured);
 }
 
 export function buildUserWorkerUrl(env: Env, deploymentId: string): string {

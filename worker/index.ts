@@ -72,6 +72,11 @@ const worker = {
 
 		// 1. Critical configuration check: Ensure custom domain is set.
         const previewDomain = getPreviewDomain(env);
+        // Domain sanity: avoid scheme in CUSTOM_DOMAIN/CUSTOM_PREVIEW_DOMAIN
+        if (previewDomain.includes('http://') || previewDomain.includes('https://')) {
+            console.error('FATAL: CUSTOM_DOMAIN/CUSTOM_PREVIEW_DOMAIN must be a bare hostname, not a URL:', previewDomain);
+            return new Response('Server configuration error: Invalid domain value', { status: 500 });
+        }
 		if (!previewDomain || previewDomain.trim() === '') {
 			console.error('FATAL: env.CUSTOM_DOMAIN is not configured in wrangler.toml or the Cloudflare dashboard.');
 			return new Response('Server configuration error: Application domain is not set.', { status: 500 });

@@ -1,8 +1,8 @@
 import { Agent, Connection } from 'agents';
-import { 
-    AgentActionType, 
-    Blueprint, 
-    PhaseConceptGenerationSchemaType, 
+import {
+    AgentActionType,
+    Blueprint,
+    PhaseConceptGenerationSchemaType,
     PhaseConceptType,
     FileOutputType,
     PhaseImplementationSchemaType,
@@ -78,7 +78,7 @@ interface Operations {
 
 /**
  * SimpleCodeGeneratorAgent - Deterministically orhestrated AI-powered code generation
- * 
+ *
  * Manages the lifecycle of code generation including:
  * - Blueprint-based phase generation
  * - Real-time file streaming with WebSocket updates
@@ -94,7 +94,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     );
 
     private previewUrlCache: string = '';
-    
+
     protected operations: Operations = {
         codeReview: new CodeReviewOperation(),
         regenerateFile: new FileRegenerationOperation(),
@@ -106,10 +106,10 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     };
 
     isGenerating: boolean = false;
-    
+
     // Deployment queue management to prevent concurrent deployments
     private currentDeploymentPromise: Promise<PreviewType | null> | null = null;
-    
+
     public _logger: StructuredLogger | undefined;
 
     logger(): StructuredLogger {
@@ -153,7 +153,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         const maybeImages = (this.env as unknown as { [key: string]: unknown })['IMAGES'];
         const imagesBinding: ImagesBinding | null = (
             typeof maybeImages === 'object' && maybeImages !== null &&
-            'fetch' in (maybeImages as Record<string, unknown>) && 
+            'fetch' in (maybeImages as Record<string, unknown>) &&
             typeof (maybeImages as { fetch?: unknown }).fetch === 'function'
         ) ? (maybeImages as ImagesBinding) : null;
 
@@ -205,7 +205,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     }
 
     initialState: CodeGenState = {
-        blueprint: {} as Blueprint, 
+        blueprint: {} as Blueprint,
         query: "",
         generatedPhases: [],
         generatedFilesMap: {},
@@ -248,8 +248,8 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             createdAt: new Date(),
             updatedAt: new Date()
         });
-        this.logger().info(`App saved successfully to database for agent ${this.state.inferenceContext.agentId}`, { 
-            agentId: this.state.inferenceContext.agentId, 
+        this.logger().info(`App saved successfully to database for agent ${this.state.inferenceContext.agentId}`, {
+            agentId: this.state.inferenceContext.agentId,
             userId: this.state.inferenceContext.userId,
             visibility: 'private'
         });
@@ -269,7 +269,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         // Generate a blueprint
         this.logger().info('Generating blueprint', { query, queryLength: query.length });
         this.logger().info(`Using language: ${language}, frameworks: ${frameworks ? frameworks.join(", ") : "none"}`);
-        
+
         const blueprint = await generateBlueprint({
             env: this.env,
             inferenceContext,
@@ -279,7 +279,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             templateDetails: templateInfo.templateDetails,
             templateMetaInfo: templateInfo.selection,
             stream: {
-                chunk_size: 256,
+                chunk_size: 1024,
                 onChunk: (chunk) => {
                     // initArgs.writer.write({chunk});
                     initArgs.onBlueprintChunk(chunk);
@@ -289,7 +289,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
         const packageJsonFile = templateInfo.templateDetails?.files.find(file => file.filePath === 'package.json');
         const packageJson = packageJsonFile ? packageJsonFile.fileContents : '';
-        
+
         this.setState({
             ...this.initialState,
             query,
@@ -329,8 +329,8 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
     async isInitialized() {
         return this.getAgentId() ? true : false
-    }  
-    
+    }
+
     onStateUpdate(_state: CodeGenState, _source: "server" | Connection) {
         // You can leave this empty to disable logging
         // Or, you can log a more specific message, for example:
@@ -551,24 +551,24 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         this.logger().info("Executing PHASE_GENERATING state");
         try {
             const currentIssues = await this.fetchAllIssues();
-            
+
             // Generate next phase with user suggestions if available
             const userSuggestions = this.state.pendingUserInputs.length > 0 ? this.state.pendingUserInputs : undefined;
             const nextPhase = await this.generateNextPhase(currentIssues, userSuggestions);
-                
+
             if (!nextPhase) {
                 this.logger().info("No more phases to implement, transitioning to FINALIZING");
                 return {
                     currentDevState: CurrentDevState.FINALIZING,
                 };
             }
-    
+
             // Store current phase and transition to implementation
             this.setState({
                 ...this.state,
                 currentPhase: nextPhase
             });
-            
+
             return {
                 currentDevState: CurrentDevState.PHASE_IMPLEMENTING,
                 result: nextPhase,
@@ -595,7 +595,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     async executePhaseImplementation(phaseConcept?: PhaseConceptType, staticAnalysis?: StaticAnalysisResponse): Promise<{currentDevState: CurrentDevState, staticAnalysis?: StaticAnalysisResponse}> {
         try {
             this.logger().info("Executing PHASE_IMPLEMENTING state");
-    
+
             if (phaseConcept === undefined) {
                 phaseConcept = this.state.currentPhase;
                 if (phaseConcept === undefined) {
@@ -608,12 +608,12 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     }
                 }
             }
-    
+
             this.setState({
                 ...this.state,
                 currentPhase: undefined // reset current phase
             });
-    
+
             let currentIssues : AllIssues;
             if (staticAnalysis) {
                 // If have cached static analysis, fetch everything else fresh
@@ -626,10 +626,10 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 currentIssues = await this.fetchAllIssues()
                 this.resetIssues();
             }
-            
+
             // Implement the phase
             await this.implementPhase(phaseConcept, currentIssues);
-    
+
             this.logger().info(`Phase ${phaseConcept.name} completed, generating next phase`);
 
             const phasesCounter = this.decrementPhasesCounter();
@@ -660,7 +660,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             ...this.state,
             reviewingInitiated: true
         });
-        
+
         try {
             this.logger().info("Starting code review and improvement cycle...");
 
@@ -688,13 +688,13 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
                     for (const fileToFix of reviewResult.filesToFix) {
                         if (!fileToFix.require_code_changes) continue;
-                        
+
                         const fileToRegenerate = this.fileManager.getGeneratedFile(fileToFix.filePath);
                         if (!fileToRegenerate) {
                             this.logger().warn(`File to fix not found in generated files: ${fileToFix.filePath}`);
                             continue;
                         }
-                        
+
                         promises.push(this.regenerateFile(
                             fileToRegenerate,
                             fileToFix.issues,
@@ -756,7 +756,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             files: [],
             lastPhase: true
         }
-        
+
         this.setState({
             ...this.state,
             generatedPhases: [
@@ -770,7 +770,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
         const currentIssues = await this.fetchAllIssues();
         this.resetIssues();
-        
+
         // Run final review and cleanup phase
         await this.implementPhase(phaseConcept, currentIssues);
 
@@ -795,7 +795,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             issues: issues,
             userSuggestions: userSuggestions,
         });
-        
+
         const result = await this.operations.generateNextPhase.execute(
             {
                 issues,
@@ -821,7 +821,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             this.logger().info(`Deleting ${filesToDelete.length} files: ${filesToDelete.map(f => f.path).join(", ")}`);
             this.deleteFiles(filesToDelete.map(f => f.path));
         }
-        
+
         if (result.files.length === 0) {
             this.logger().info("No files generated for next phase");
             // Notify phase generation complete
@@ -831,7 +831,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             });
             return undefined;
         }
-        
+
         this.setState({
             ...this.state,
             generatedPhases: [
@@ -859,18 +859,18 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     async implementPhase(phase: PhaseConceptType, currentIssues: AllIssues, streamChunks: boolean = true): Promise<PhaseImplementationSchemaType> {
         const context = GenerationContext.from(this.state, this.logger());
         const issues = IssueReport.from(currentIssues);
-        
+
         this.broadcast(WebSocketMessageResponses.PHASE_IMPLEMENTING, {
             message: `Implementing phase: ${phase.name}`,
             phase: phase,
             issues: issues,
         });
-            
-        
+
+
         const result = await this.operations.implementPhase.execute(
             {
-                phase, 
-                issues, 
+                phase,
+                issues,
                 isFirstPhase: this.state.generatedPhases.filter(p => p.completed).length === 0,
                 fileGeneratingCallback: (filePath: string, filePurpose: string) => {
                     this.broadcast(WebSocketMessageResponses.FILE_GENERATING, {
@@ -903,12 +903,12 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 inferenceContext: this.state.inferenceContext,
             }
         );
-        
+
         this.broadcast(WebSocketMessageResponses.PHASE_VALIDATING, {
             message: `Validating files for phase: ${phase.name}`,
             phase: phase,
         });
-    
+
         // Await the already-created realtime code fixer promises
         const finalFiles = await Promise.allSettled(result.fixedFilePromises).then((results: PromiseSettledResult<FileOutputType>[]) => {
             return results.map((result) => {
@@ -919,7 +919,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 }
             }).filter((f): f is FileOutputType => f !== null);
         });
-    
+
         // Update state with completed phase
         this.fileManager.saveGeneratedFiles(finalFiles);
 
@@ -930,7 +930,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             this.logger().info("Phase implementation suggested install commands:", result.commands);
             await this.executeCommands(result.commands, false);
         }
-    
+
         // Deploy generated files
         if (finalFiles.length > 0) {
             await this.deployToSandbox(finalFiles, false, phase.name);
@@ -943,11 +943,11 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             message: `Files validated for phase: ${phase.name}`,
             phase: phase
         });
-    
+
         this.logger().info("Files generated for phase:", phase.name, finalFiles.map(f => f.filePath));
-    
+
         this.logger().info(`Validation complete for phase: ${phase.name}`);
-    
+
         // Notify phase completion
         this.broadcast(WebSocketMessageResponses.PHASE_IMPLEMENTED, {
             phase: {
@@ -961,7 +961,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             },
             message: "Files generated successfully for phase"
         });
-    
+
         const previousPhases = this.state.generatedPhases;
         // Replace the phase with the new one
         const updatedPhases = previousPhases.map(p => p.name === phase.name ? {...p, completed: true} : p);
@@ -971,7 +971,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         });
 
         this.logger().info("Completed phases:", JSON.stringify(updatedPhases, null, 2));
-        
+
         return {
             files: finalFiles,
             deploymentNeeded: result.deploymentNeeded,
@@ -991,10 +991,10 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
         try {
             const modelConfigService = new ModelConfigService(this.env);
-            
+
             // Get all user configs
             const userConfigsRecord = await modelConfigService.getUserModelConfigs(userId);
-            
+
             // Transform to match frontend interface
             const agents = Object.entries(AGENT_CONFIG).map(([key, config]) => ({
                 key,
@@ -1016,7 +1016,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                         isUserOverride: true
                     };
                 }
-                
+
                 // Always include default config
                 const defaultConfig = AGENT_CONFIG[actionKey as AgentActionKey];
                 if (defaultConfig) {
@@ -1069,7 +1069,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 inferenceContext: this.state.inferenceContext,
             }
         );
-        
+
         // Execute commands if any
         if (reviewResult.commands && reviewResult.commands.length > 0) {
             await this.executeCommands(reviewResult.commands);
@@ -1079,7 +1079,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             review: reviewResult,
             message: "Code review completed"
         });
-        
+
         return reviewResult;
     }
 
@@ -1094,7 +1094,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             filePath: file.filePath,
             original_issues: issues,
         });
-        
+
         const result = await this.operations.regenerateFile.execute(
             {file, issues, retryIndex},
             {
@@ -1113,7 +1113,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             file: result,
             original_issues: issues,
         });
-        
+
         return result;
     }
 
@@ -1137,18 +1137,18 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         this.migrateStateIfNeeded();
         return this.state;
     }
-    
+
     /**
      * Migrate old snake_case file properties to camelCase format
      * This is needed for apps created before the schema migration
      */
     private migrateStateIfNeeded(): void {
         let needsMigration = false;
-        
+
         // Helper function to migrate a file object from snake_case to camelCase
         const migrateFile = (file: any): any => {
             const hasOldFormat = 'file_path' in file || 'file_contents' in file || 'file_purpose' in file;
-            
+
             if (hasOldFormat) {
                 return {
                     filePath: file.filePath || file.file_path,
@@ -1163,7 +1163,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         const migratedFilesMap: Record<string, FileState> = {};
         for (const [key, file] of Object.entries(this.state.generatedFilesMap)) {
             const migratedFile = migrateFile(file);
-            
+
             // Add FileState-specific properties if missing
             migratedFilesMap[key] = {
                 ...migratedFile,
@@ -1171,7 +1171,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 last_modified: migratedFile.last_modified || Date.now(),
                 unmerged: migratedFile.unmerged || []
             };
-            
+
             if (migratedFile !== file) {
                 needsMigration = true;
             }
@@ -1187,7 +1187,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 }
                 return migratedFile;
             });
-            
+
             if (needsMigration) {
                 migratedTemplateDetails = {
                     ...migratedTemplateDetails,
@@ -1199,31 +1199,31 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         // Fix conversation message exponential bloat caused by incorrect message accumulation
         let migratedConversationMessages = this.state.conversationMessages;
         const MIN_MESSAGES_FOR_CLEANUP = 25;
-        
+
         if (migratedConversationMessages && migratedConversationMessages.length > 0) {
             const originalCount = migratedConversationMessages.length;
-            
+
             // Deduplicate messages by conversationId
             const seen = new Set<string>();
             const uniqueMessages = [];
-            
+
             for (const message of migratedConversationMessages) {
                 // Use conversationId as primary unique key since it should be unique per message
                 let key = message.conversationId;
                 if (!key) {
                     // Fallback for messages without conversationId
-                    const contentStr = typeof message.content === 'string' 
+                    const contentStr = typeof message.content === 'string'
                         ? message.content.substring(0, 100)
                         : JSON.stringify(message.content || '').substring(0, 100);
                     key = `${message.role || 'unknown'}_${contentStr}_${Date.now()}`;
                 }
-                
+
                 if (!seen.has(key)) {
                     seen.add(key);
                     uniqueMessages.push(message);
                 }
             }
-            
+
             // Sort messages by timestamp (extracted from conversationId) to maintain chronological order
             uniqueMessages.sort((a, b) => {
                 const getTimestamp = (msg: any) => {
@@ -1237,37 +1237,37 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 };
                 return getTimestamp(a) - getTimestamp(b);
             });
-            
+
             // Smart filtering: if we have more than MIN_MESSAGES_FOR_CLEANUP, remove internal memos but keep actual conversations
             if (uniqueMessages.length > MIN_MESSAGES_FOR_CLEANUP) {
                 const realConversations = [];
                 const internalMemos = [];
-                
+
                 for (const message of uniqueMessages) {
                     const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content || '');
                     const isInternalMemo = content.includes('**<Internal Memo>**') || content.includes('Project Updates:');
-                    
+
                     if (isInternalMemo) {
                         internalMemos.push(message);
                     } else {
                         realConversations.push(message);
                     }
                 }
-                
+
                 this.logger().info('Conversation cleanup analysis', {
                     totalUniqueMessages: uniqueMessages.length,
                     realConversations: realConversations.length,
                     internalMemos: internalMemos.length,
                     willRemoveInternalMemos: uniqueMessages.length > MIN_MESSAGES_FOR_CLEANUP
                 });
-                
+
                 // Keep all real conversations, remove internal memos if we exceed the threshold
                 migratedConversationMessages = realConversations;
             } else {
                 // If we have few messages, keep everything
                 migratedConversationMessages = uniqueMessages;
             }
-            
+
             if (migratedConversationMessages.length !== originalCount) {
                 this.logger().info('Fixed conversation message exponential bloat', {
                     originalCount,
@@ -1285,7 +1285,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             migratedInferenceContext = {
                 ...migratedInferenceContext
             };
-            
+
             // Completely remove the userApiKeys property for security
             delete (migratedInferenceContext as any).userApiKeys;
             needsMigration = true;
@@ -1296,7 +1296,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         if (stateHasDeprecatedProps) {
             needsMigration = true;
         }
-        
+
         // Apply migration if needed
         if (needsMigration) {
             this.logger().info('Migrating state: schema format, conversation cleanup, and security fixes', {
@@ -1305,7 +1305,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 finalConversationCount: migratedConversationMessages?.length || 0,
                 removedUserApiKeys: this.state.inferenceContext && 'userApiKeys' in this.state.inferenceContext
             });
-            
+
             const newState = {
                 ...this.state,
                 generatedFilesMap: migratedFilesMap,
@@ -1313,16 +1313,16 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 conversationMessages: migratedConversationMessages,
                 inferenceContext: migratedInferenceContext
             };
-            
+
             // Remove deprecated properties
             if (stateHasDeprecatedProps) {
                 delete (newState as any).latestScreenshot;
             }
-            
+
             this.setState(newState);
         }
 
-        
+
     }
 
     getFileGenerated(filePath: string) {
@@ -1347,7 +1347,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 this.deployToSandbox([], true);
                 return [];
             }
-            
+
             const errors = resp?.errors || [];
 
             if (errors.filter(error => error.message.includes('Unterminated string in JSON at position')).length > 0) {
@@ -1356,7 +1356,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 this.deployToSandbox([], true);
                 return [];
             }
-            
+
             if (errors.length > 0) {
                 this.logger().info(`Found ${errors.length} runtime errors: ${errors.map(e => e.message).join(', ')}`);
                 this.broadcast(WebSocketMessageResponses.RUNTIME_ERROR_FOUND, {
@@ -1364,7 +1364,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     message: "Runtime errors found",
                     count: errors.length
                 });
-                
+
                 if (clear) {
                     await this.getSandboxServiceClient().clearInstanceErrors(this.state.sandboxInstanceId);
                 }
@@ -1463,7 +1463,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     //             await this.deployToSandbox(fastCodeFixer);
     //             this.logger().info("Fast smart code fixes applied successfully");
     //         }
-    //         this.logger().info(`Fast smart code fixes applied in ${Date.now() - startTime}ms`);            
+    //         this.logger().info(`Fast smart code fixes applied in ${Date.now() - startTime}ms`);
     //     } catch (error) {
     //         this.logger().error("Error applying fast smart code fixes:", error);
     //         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1512,7 +1512,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 }
                 return null;
             };
-            
+
             const fixResult = await fixProjectIssues(
                 allFiles.map(file => ({
                     filePath: file.filePath,
@@ -1533,7 +1533,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 // If there are unfixable issues but of type TS2307, extract external module names and install them
                 if (fixResult.unfixableIssues.length > 0) {
                     const modulesNotFound = fixResult.unfixableIssues.filter(issue => issue.issueCode === 'TS2307');
-                    // Reason is of the form: External package "xyz" should be handled by package manager                    
+                    // Reason is of the form: External package "xyz" should be handled by package manager
                     const moduleNames = modulesNotFound.flatMap(issue => {
                         const match = issue.reason.match(/External package ["'](.+?)["']/);
                         const name = match?.[1];
@@ -1556,7 +1556,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                             fileContents: file.fileContents
                     }));
                     this.fileManager.saveGeneratedFiles(fixedFiles);
-                    
+
                     await this.deployToSandbox(fixedFiles, false, "fix: applied deterministic fixes");
                     this.logger().info("Deployed deterministic fixes to sandbox");
                 }
@@ -1576,10 +1576,10 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             this.fetchRuntimeErrors(false),
             this.runStaticAnalysisCode()
         ]);
-        
+
         const clientErrors = this.state.clientReportedErrors;
         this.logger().info("Fetched all issues:", JSON.stringify({ runtimeErrors, staticAnalysis, clientErrors }));
-        
+
         return { runtimeErrors, staticAnalysis, clientErrors };
     }
 
@@ -1605,7 +1605,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
         // Start the actual deployment and track it
         this.currentDeploymentPromise = this.executeDeployment(files, redeploy, commitMessage);
-        
+
         try {
             // Add 60-second timeout to the deployment promise
             const timeoutPromise = new Promise<never>((_, reject) => {
@@ -1613,7 +1613,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     reject(new Error('Deployment timed out after 60 seconds'));
                 }, 60000);
             });
-            
+
             const result = await Promise.race([
                 this.currentDeploymentPromise,
                 timeoutPromise
@@ -1634,10 +1634,10 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         // Only use the first 20 characters of the prefix
         prefix = prefix.slice(0, 20);
         const projectName = `${prefix}-${uniqueSuffix}`.toLowerCase();
-        
+
         // Generate webhook URL for this agent instance
         const webhookUrl = this.generateWebhookUrl();
-        
+
         const createResponse = await this.getSandboxServiceClient().createInstance(templateName, `v1-${projectName}`, webhookUrl);
         if (!createResponse || !createResponse.success || !createResponse.runId) {
             throw new Error(`Failed to create sandbox instance: ${createResponse?.error || 'Unknown error'}`);
@@ -1706,19 +1706,24 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 });
 
                 if (this.state.commandsHistory && this.state.commandsHistory.length > 0) {
-                    // Run all commands in background
-                    let cmds = this.state.commandsHistory;
-                    if (cmds.length > 10) {
-                        cmds =  Array.from(new Set(this.state.commandsHistory));
-                        // I am aware this will messup the ordering of commands and may cause issues but those would be in very rare cases
-                        // because usually LLMs will only generate install commands or rm commands. 
-                        // This is to handle the bug still present in a lot of apps because of an exponential growth of commands
+                    // Run setup commands by default unless explicitly disabled
+                    const skip = String((this.env as any).SANDBOX_SKIP_SETUP_COMMANDS || '').toLowerCase() === 'true';
+                    if (skip) {
+                        this.broadcast(WebSocketMessageResponses.COMMAND_EXECUTING, {
+                            message: "Setup commands skipped (SANDBOX_SKIP_SETUP_COMMANDS=true)",
+                            commands: []
+                        });
+                    } else {
+                        let cmds = this.state.commandsHistory;
+                        if (cmds.length > 10) {
+                            cmds = Array.from(new Set(this.state.commandsHistory));
+                        }
+                        this.getSandboxServiceClient().executeCommands(sandboxInstanceId, cmds);
+                        this.broadcast(WebSocketMessageResponses.COMMAND_EXECUTING, {
+                            message: "Executing setup commands",
+                            commands: cmds,
+                        });
                     }
-                    this.getSandboxServiceClient().executeCommands(sandboxInstanceId, cmds);
-                    this.broadcast(WebSocketMessageResponses.COMMAND_EXECUTING, {
-                        message: "Executing setup commands",
-                        commands: cmds,
-                    });
                 }
 
                 // Launch a set interval to check the health of the deployment. If it fails, redeploy
@@ -1736,7 +1741,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             }
 
             // Deploy files
-            const filesToWrite = files.length > 0 
+            const filesToWrite = files.length > 0
                 ? files.map(file => ({
                     filePath: file.filePath,
                     fileContents: file.fileContents
@@ -1764,6 +1769,22 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 message: "Deployment completed",
                 ...preview,
             });
+
+            // Emit recent sandbox logs to help diagnose preview readiness
+            try {
+                const logs = await this.getSandboxServiceClient().getLogs(sandboxInstanceId!);
+                if (logs?.success) {
+                    this.broadcast('sandbox_logs' as any, {
+                        type: 'sandbox_logs',
+                        tail: {
+                            stdout: logs.logs.stdout?.slice(-4000),
+                            stderr: logs.logs.stderr?.slice(-4000)
+                        }
+                    });
+                }
+            } catch (e) {
+                this.logger().debug?.('sandbox logs fetch failed', { error: e instanceof Error ? e.message : String(e) });
+            }
 
             return preview;
         } catch (error) {
@@ -1925,9 +1946,9 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
     public broadcast<T extends WebSocketMessageType>(type: T, data: WebSocketMessageData<T>): void;
     public broadcast(msg: string | ArrayBuffer | ArrayBufferView<ArrayBufferLike>, without?: string[]): void;
-    
+
     public broadcast(
-        typeOrMsg: WebSocketMessageType | string | ArrayBuffer | ArrayBufferView<ArrayBufferLike>, 
+        typeOrMsg: WebSocketMessageType | string | ArrayBuffer | ArrayBufferView<ArrayBufferLike>,
         dataOrWithout?: WebSocketMessageData<WebSocketMessageType> | unknown
     ): void {
         // // Send the event to the conversational assistant if its a relevant event
@@ -1964,7 +1985,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     private generateWebhookUrl(): string {
         // Use the agent's session ID as the agent identifier
         const agentId = this.getAgentId() || 'unknown';
-        
+
         // Generate webhook URL with agent ID for routing
         return `${getProtocolForHost(this.state.hostname)}://${this.state.hostname}/api/webhook/sandbox/${agentId}/runtime_error`;
     }
@@ -1978,9 +1999,9 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             const pathParts = url.pathname.split('/');
             const eventType = pathParts[pathParts.length - 1];
 
-            this.logger().info('Received webhook from sandbox service', { 
-                eventType, 
-                agentId: this.getAgentId() 
+            this.logger().info('Received webhook from sandbox service', {
+                eventType,
+                agentId: this.getAgentId()
             });
 
             const payload = await request.json() as WebhookPayload;
@@ -2098,14 +2119,14 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             let currentChunk = chunk;
             let retryCount = 0;
             const maxRetries = shouldRetry ? 3 : 1;
-            
+
             while (currentChunk.length > 0 && retryCount < maxRetries) {
                 try {
                     this.broadcast(WebSocketMessageResponses.COMMAND_EXECUTING, {
                         message: retryCount > 0 ? `Retrying commands (attempt ${retryCount + 1}/${maxRetries})` : "Executing commands",
                         commands: currentChunk
                     });
-                    
+
                     const resp = await this.getSandboxServiceClient().executeCommands(
                         state.sandboxInstanceId,
                         currentChunk
@@ -2137,29 +2158,29 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                         this.logger().info(`All commands in chunk executed successfully`);
                         break;
                     }
-                    
+
                     // Handle failures
                     const failedCommands = failures.map(r => r.command);
                     this.logger().warn(`${failures.length} commands failed: ${failedCommands.join(", ")}`);
-                    
+
                     // Only retry if shouldRetry is true
                     if (!shouldRetry) {
                         break;
                     }
-                    
+
                     retryCount++;
-                    
+
                     // For install commands, try AI regeneration
-                    const failedInstallCommands = failedCommands.filter(cmd => 
+                    const failedInstallCommands = failedCommands.filter(cmd =>
                         cmd.startsWith("bun") || cmd.startsWith("npm") || cmd.includes("install")
                     );
-                    
+
                     if (failedInstallCommands.length > 0 && retryCount < maxRetries) {
                         // Use AI to suggest alternative commands
                         const newCommands = await this.getProjectSetupAssistant().generateSetupCommands(
                             `The following install commands failed: ${JSON.stringify(failures, null, 2)}. Please suggest alternative commands.`
                         );
-                        
+
                         if (newCommands?.commands && newCommands.commands.length > 0) {
                             this.logger().info(`AI suggested ${newCommands.commands.length} alternative commands`);
                             this.broadcast(WebSocketMessageResponses.COMMAND_EXECUTING, {
@@ -2185,7 +2206,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
 
         // Record command execution history
         const failedCommands = commands.filter(cmd => !successfulCommands.includes(cmd));
-        
+
         if (failedCommands.length > 0) {
             this.logger().warn(`Failed to execute commands: ${failedCommands.join(", ")}`);
             this.broadcast(WebSocketMessageResponses.ERROR, {
@@ -2321,17 +2342,17 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
      */
     async handleUserInput(userMessage: string): Promise<void> {
         try {
-            this.logger().info('Processing user input message', { 
+            this.logger().info('Processing user input message', {
                 messageLength: userMessage.length,
-                pendingInputsCount: this.state.pendingUserInputs.length 
+                pendingInputsCount: this.state.pendingUserInputs.length
             });
 
             const context = GenerationContext.from(this.state, this.logger());
 
             // Process the user message using conversational assistant
             const conversationalResponse = await this.operations.processUserMessage.execute(
-                { 
-                    userMessage, 
+                {
+                    userMessage,
                     pastMessages: this.state.conversationMessages,
                     conversationResponseCallback: (
                         message: string,
@@ -2346,7 +2367,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                             tool,
                         });
                     }
-                }, 
+                },
                 { env: this.env, agentId: this.getAgentId(), context, logger: this.logger(), inferenceContext: this.state.inferenceContext }
             );
 
@@ -2400,7 +2421,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
      * Capture screenshot of the given URL using Cloudflare Browser Rendering REST API
      */
     public async captureScreenshot(
-        url: string, 
+        url: string,
         viewport: { width: number; height: number } = { width: 1280, height: 720 }
     ): Promise<string> {
         if (!url) {
@@ -2414,22 +2435,49 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         }
 
         this.logger().info('Capturing screenshot via REST API', { url, viewport });
-        
+
         // Notify start of screenshot capture
         this.broadcast(WebSocketMessageResponses.SCREENSHOT_CAPTURE_STARTED, {
             message: `Capturing screenshot of ${url}`,
             url,
             viewport
         });
-        
+
         try {
             // Use Cloudflare Browser Rendering REST API
-            const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${this.env.CLOUDFLARE_ACCOUNT_ID}/browser-rendering/snapshot`;
-            
+            const accountId = this.env.CLOUDFLARE_ACCOUNT_ID;
+            const apiToken = this.env.CLOUDFLARE_API_TOKEN || (this.env as any).CLOUDFLARE_API_KEY;
+            // Broadcast minimal env diagnostics (no secrets)
+            this.broadcast(WebSocketMessageResponses.SCREENSHOT_CAPTURE_STARTED, {
+                message: `Capturing screenshot of ${url}`,
+                url,
+                viewport,
+                envCheck: {
+                    hasAccountId: !!accountId,
+                    hasToken: !!apiToken,
+                    tokenLen: apiToken ? String(apiToken).length : 0,
+                    accountIdPrefix: accountId ? String(accountId).slice(0, 4) : ''
+                }
+            });
+
+            if (!accountId || !apiToken) {
+                const err = 'Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN (or CLOUDFLARE_API_KEY fallback)';
+                this.broadcast(WebSocketMessageResponses.SCREENSHOT_CAPTURE_ERROR, {
+                    error: err,
+                    url,
+                    viewport,
+                    statusCode: 400,
+                    statusText: 'Bad Request'
+                });
+                throw new Error(err);
+            }
+
+            const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/browser-rendering/snapshot`;
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.env.CLOUDFLARE_API_TOKEN}`,
+                    'Authorization': `Bearer ${apiToken}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -2445,7 +2493,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     }
                 }),
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 const error = `Browser Rendering API failed: ${response.status} - ${errorText}`;
@@ -2458,7 +2506,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 });
                 throw new Error(error);
             }
-            
+
             const result = await response.json() as {
                 success: boolean;
                 result: {
@@ -2466,7 +2514,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     content: string;    // HTML content
                 };
             };
-            
+
             if (!result.success || !result.result.screenshot) {
                 const error = 'Browser Rendering API succeeded but no screenshot returned';
                 this.broadcast(WebSocketMessageResponses.SCREENSHOT_CAPTURE_ERROR, {
@@ -2477,7 +2525,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 });
                 throw new Error(error);
             }
-            
+
             // Get base64 screenshot data
             const base64Screenshot = result.result.screenshot;
 
@@ -2524,8 +2572,8 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 throw new Error(error);
             }
 
-            this.logger().info('Screenshot captured and stored successfully', { 
-                url, 
+            this.logger().info('Screenshot captured and stored successfully', {
+                url,
                 storage: publicUrl.startsWith('data:') ? 'database' : (publicUrl.includes('/api/screenshots/') ? 'r2' : 'images'),
                 length: base64Screenshot.length
             });
@@ -2540,10 +2588,10 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             });
 
             return publicUrl;
-            
+
         } catch (error) {
             this.logger().error('Failed to capture screenshot via REST API:', error);
-            
+
             // Only broadcast if error wasn't already broadcast above
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             if (!errorMessage.includes('Browser Rendering API') && !errorMessage.includes('Database update failed')) {
@@ -2553,7 +2601,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     viewport
                 });
             }
-            
+
             throw new Error(`Screenshot capture failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
@@ -2588,7 +2636,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 timestamp: screenshotData.timestamp,
                 screenshotUrl
             });
-            
+
             // // Update agent state with latest screenshot
             // this.setState({
             //     ...this.state,
@@ -2597,7 +2645,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
             //         screenshot: screenshotUrl // Store base64 data URL
             //     }
             // });
-            
+
         } catch (error) {
             this.logger().error('Failed to capture and save screenshot:', error);
             // Error was already broadcast by captureScreenshot method
@@ -2612,7 +2660,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     async executeTerminalCommand(command: string, connection?: Connection): Promise<void> {
         try {
             this.logger().info('Executing terminal command', { command });
-            
+
             // Send server log
             const serverLogMessage = {
                 message: `Executing command: ${command}`,
@@ -2620,7 +2668,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 timestamp: Date.now(),
                 source: 'terminal'
             };
-            
+
             if (connection) {
                 this.sendToConnection(connection, WebSocketMessageResponses.SERVER_LOG, serverLogMessage);
             } else {
@@ -2660,21 +2708,21 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                         outputType: result.success ? 'stdout' as const : 'stderr' as const,
                         timestamp: Date.now()
                     };
-                    
+
                     if (connection) {
                         this.sendToConnection(connection, WebSocketMessageResponses.TERMINAL_OUTPUT, outputMessage);
                     } else {
                         this.broadcast(WebSocketMessageResponses.TERMINAL_OUTPUT, outputMessage);
                     }
                 }
-                
+
                 if (result.error) {
                     const errorMessage = {
                         output: result.error,
                         outputType: 'stderr' as const,
                         timestamp: Date.now()
                     };
-                    
+
                     if (connection) {
                         this.sendToConnection(connection, WebSocketMessageResponses.TERMINAL_OUTPUT, errorMessage);
                     } else {
@@ -2689,7 +2737,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                         outputType: 'stderr' as const,
                         timestamp: Date.now()
                     };
-                    
+
                     if (connection) {
                         this.sendToConnection(connection, WebSocketMessageResponses.TERMINAL_OUTPUT, exitCodeMessage);
                     } else {
@@ -2697,16 +2745,16 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                     }
                 }
             }
-            
+
         } catch (error) {
             this.logger().error('Error executing terminal command:', error);
-            
+
             const errorMessage = {
                 output: `Error: ${error instanceof Error ? error.message : String(error)}`,
                 outputType: 'stderr' as const,
                 timestamp: Date.now()
             };
-            
+
             if (connection) {
                 this.sendToConnection(connection, WebSocketMessageResponses.TERMINAL_OUTPUT, errorMessage);
             } else {
@@ -2731,8 +2779,8 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
      * Send message to a specific connection
      */
     private sendToConnection(
-        connection: Connection, 
-        type: string, 
+        connection: Connection,
+        type: string,
         data: any
     ): void {
         try {

@@ -119,8 +119,19 @@ monaco.editor.defineTheme('v1-dev', {
 monaco.editor.setTheme('v1-dev');
 
 monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-	noSemanticValidation: true,
-	noSyntaxValidation: true,
+    noSemanticValidation: true,
+    noSyntaxValidation: true,
+    noSuggestionDiagnostics: true,
+});
+// Ensure the TS worker immediately syncs in-memory models to avoid QuickInfo errors
+monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
+monaco.languages.typescript.javascriptDefaults?.setEagerModelSync?.(true);
+// Disable TS hover QuickInfo to avoid errors on ephemeral in-memory models
+monaco.languages.registerHoverProvider('typescript', {
+    provideHover() { return { contents: [] }; }
+});
+monaco.languages.registerHoverProvider('javascript', {
+    provideHover() { return { contents: [] }; }
 });
 
 // Configure TypeScript defaults for JSX support
@@ -137,6 +148,11 @@ monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
 });
 
 // Configure JavaScript defaults for JSX support
+monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+    noSemanticValidation: true,
+    noSyntaxValidation: true,
+    noSuggestionDiagnostics: true,
+});
 monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
 	allowJs: true,
 	allowSyntheticDefaultImports: true,
@@ -180,6 +196,7 @@ export const MonacoEditor = memo<MonacoEditorProps>(function MonacoEditor({
 		editor.current = monaco.editor.create(containerRef.current!, {
 			language: createOptions.language || 'typescript',
 			minimap: { enabled: false },
+			hover: { enabled: false },
 			theme: configuredTheme === 'dark' ? 'v1-dev-dark' : 'v1-dev',
 			automaticLayout: true,
 			value: defaultCode,

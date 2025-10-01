@@ -44,11 +44,11 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 			consecutiveReactErrors: 0,
 			lastReactErrorBody: null
 		});
-		
+
 		const [currentSrc, setCurrentSrc] = useState<string>('');
 		const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 		const maxRetries = 16; // Will try for ~8 minutes total
-		
+
 		// Reset retry state when src changes
 		useEffect(() => {
 			setRetryState({
@@ -62,11 +62,11 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 				lastReactErrorBody: null
 			});
 			setCurrentSrc('');
-			
+
 			if (timeoutRef.current) {
 				clearTimeout(timeoutRef.current);
 			}
-			
+
 			// Start loading immediately
 			loadWithRetry(src, 0);
 		}, [src]);
@@ -75,7 +75,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 		useEffect(() => {
 			if (shouldRefreshPreview && retryState.hasSucceeded && currentSrc) {
 				console.log('🔄 Auto-refreshing preview after deployment completion');
-				
+
 				// Force reload by temporarily clearing and resetting the src
 				// This ensures the iframe actually reloads instead of using cache
 				setCurrentSrc('');
@@ -84,19 +84,19 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					hasSucceeded: false,
 					lastError: 'Refreshing preview after deployment completion...'
 				}));
-				
+
 				// Reload immediately (no delay needed since deployment is already complete)
 				setTimeout(() => {
 					loadWithRetry(src, 0);
 				}, 1000);
 			}
 		}, [shouldRefreshPreview, retryState.hasSucceeded, currentSrc, src]);
-		
+
 		// Handle manual refresh trigger
 		useEffect(() => {
 			if (manualRefreshTrigger && manualRefreshTrigger > 0) {
 				console.log('🔄 Manual refresh triggered');
-				
+
 				// Force reload by clearing and resetting the src
 				setCurrentSrc('');
 				setRetryState({
@@ -109,19 +109,19 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					consecutiveReactErrors: 0,
 					lastReactErrorBody: null
 				});
-				
+
 				// Clear any existing timeouts
 				if (timeoutRef.current) {
 					clearTimeout(timeoutRef.current);
 				}
-				
+
 				// Reload after a brief moment
 				setTimeout(() => {
 					loadWithRetry(src, 0);
 				}, 100);
 			}
 		}, [manualRefreshTrigger]);
-		
+
 		const loadWithRetry = (url: string, attempt: number) => {
 			if (attempt >= maxRetries) {
 				// Send runtime error to backend via WebSocket
@@ -146,14 +146,14 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 				}));
 				return;
 			}
-			
+
 			setRetryState(prev => ({
 				...prev,
 				attempt: attempt + 1,
 				isRetrying: true,
 				lastError: null
 			}));
-			
+
 			// Test if URL has content ready with comprehensive verification
 			testContentReadiness(url)
 				.then((isAccessible: boolean) => {
@@ -169,12 +169,12 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					} else {
 						// URL not accessible yet, retry with exponential backoff
 						const delay = Math.min(1000 * Math.pow(2, attempt), 30000); // Max 30s delay
-						
+
 						setRetryState(prev => ({
 							...prev,
 							lastError: `Preview not ready yet. Retrying in ${Math.ceil(delay / 1000)}s... (attempt ${attempt + 1}/${maxRetries})`
 						}));
-						
+
 						timeoutRef.current = setTimeout(() => {
 							loadWithRetry(url, attempt + 1);
 						}, delay);
@@ -183,18 +183,18 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 				.catch(() => {
 					// Error testing URL, retry anyway
 					const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
-					
+
 					setRetryState(prev => ({
 						...prev,
 						lastError: `Preview not ready yet. Retrying in ${Math.ceil(delay / 1000)}s... (attempt ${attempt + 1}/${maxRetries})`
 					}));
-					
+
 					timeoutRef.current = setTimeout(() => {
 						loadWithRetry(url, attempt + 1);
 					}, delay);
 				});
 		};
-		
+
 		/**
 		 * Test if the URL is accessible and has meaningful content
 		 * Uses multiple verification methods to ensure content is actually ready
@@ -202,16 +202,20 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 		const testContentReadiness = async (url: string): Promise<boolean> => {
 			try {
 				// Step 1: Fast connectivity test
-				await fetch(url, {
-					method: 'HEAD',
-					mode: 'no-cors',
-					cache: 'no-cache',
-					signal: AbortSignal.timeout(8000) // 8 second timeout
-				});
+                try {
+                    await fetch(url, {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        cache: 'no-cache',
+                        signal: AbortSignal.timeout(8000)
+                    });
+                } catch (e) {
+                    // SSL/cipher mismatch or opaque no-cors response: continue to iframe test
+                }
 
 				// Step 2: Content verification via iframe load test
 				const contentReadiness = await testIframeContentLoad(url);
-				
+
 				return contentReadiness;
 			} catch (error) {
 				console.log('Content readiness test failed:', error);
@@ -229,7 +233,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 				testFrame.style.display = 'none';
 				testFrame.style.position = 'absolute';
 				testFrame.style.left = '-9999px';
-				
+
 				let hasResolved = false;
 				const timeout = setTimeout(() => {
 					if (!hasResolved) {
@@ -241,7 +245,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 
 				testFrame.onload = () => {
 					if (hasResolved) return;
-					
+
 					// Fast verification: check if iframe has meaningful content
 					setTimeout(() => {
 						try {
@@ -249,9 +253,9 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 							const iframeDoc = testFrame.contentDocument || testFrame.contentWindow?.document;
 							const bodyText = iframeDoc?.body?.textContent?.toLowerCase() || '';
 							const titleText = iframeDoc?.title?.toLowerCase() || '';
-							
+
 							// Check for container proxy errors (any IP address pattern)
-							const hasContainerError = 
+							const hasContainerError =
 								bodyText.includes('error proxying request to container') ||
 								bodyText.includes('the container is not listening') ||
 								bodyText.includes('tcp address') ||
@@ -262,11 +266,11 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 								bodyText.includes('502 bad gateway') ||
 								bodyText.includes('503 service unavailable');
 
-							const hasValidContent = !!(iframeDoc && 
-								iframeDoc.body && 
+							const hasValidContent = !!(iframeDoc &&
+								iframeDoc.body &&
 								iframeDoc.body.children.length > 0 &&
 								!hasContainerError);
-						
+
 							if (!hasResolved) {
 								hasResolved = true;
 								clearTimeout(timeout);
@@ -285,20 +289,21 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					}, 1500); // Wait 1.5 seconds after load to ensure content is rendered
 				};
 
-				testFrame.onerror = () => {
-					if (!hasResolved) {
-						hasResolved = true;
-						clearTimeout(timeout);
-						document.body.removeChild(testFrame);
-						resolve(false);
-					}
-				};
+                testFrame.onerror = () => {
+                    if (!hasResolved) {
+                        hasResolved = true;
+                        clearTimeout(timeout);
+                        document.body.removeChild(testFrame);
+                        // On TLS/opaque errors, report not ready (caller will backoff)
+                        resolve(false);
+                    }
+                };
 
 				document.body.appendChild(testFrame);
 				testFrame.src = url;
 			});
 		};
-		
+
 		const handleManualRetry = () => {
 			if (timeoutRef.current) {
 				clearTimeout(timeoutRef.current);
@@ -316,7 +321,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 			setCurrentSrc('');
 			loadWithRetry(src, 0);
 		};
-		
+
 		// Cleanup timeout on unmount
 		useEffect(() => {
 			return () => {
@@ -325,7 +330,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 				}
 			};
 		}, []);
-		
+
 		// If we have a working URL, show the iframe
 		if (retryState.hasSucceeded && currentSrc) {
 			return (
@@ -344,27 +349,27 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 										consecutiveReactErrors: 0,
 										lastReactErrorBody: null
 									}));
-										
+
 									// Trigger server-side screenshot capture in dev mode
 									if (devMode && webSocket && webSocket.readyState === WebSocket.OPEN) {
 										// Wait a bit to ensure the page is fully rendered
 										setTimeout(() => {
 											try {
 												console.log('📸 Requesting server-side screenshot of preview');
-												
+
 												// Send screenshot capture request to backend (server will handle the actual capture)
 												webSocket.send(JSON.stringify({
 													type: 'screenshot_captured',
 													data: {
 														url: currentSrc,
 														timestamp: Date.now(),
-														viewport: { 
-															width: 1280, 
-															height: 720 
+														viewport: {
+															width: 1280,
+															height: 720
 														}
 													}
 												}));
-												
+
 												console.log('✅ Screenshot request sent to backend');
 											} catch (screenshotError) {
 												console.error('❌ Failed to send screenshot request:', screenshotError);
@@ -392,7 +397,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 				/>
 			);
 		}
-		
+
 		// Show loading/retry state
 		return (
 			<div className={`${className} flex flex-col items-center justify-center bg-bg-3 border border-text/10 rounded-lg`}>
@@ -448,7 +453,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					// 			Try Again
 					// 		</button>
 					// 	</>
-					// ) : 
+					// ) :
 					(
 						<>
 							<RefreshCw className="size-8 text-brand animate-spin mx-auto mb-4" />

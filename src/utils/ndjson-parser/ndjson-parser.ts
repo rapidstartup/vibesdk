@@ -9,19 +9,28 @@ export async function* ndjsonStream(response: Response) {
 
         buffer += decoder.decode(value, { stream: true });
 
-        const lines = buffer.split('\n');
+        // Handle both \n and \r\n line endings robustly
+        const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() ?? "";
 
         for (const line of lines) {
             if (line.trim()) {
-                yield JSON.parse(line);
+                try {
+                    yield JSON.parse(line);
+                } catch (e) {
+                    // Skip malformed line; it may be a partial chunk
+                }
             }
         }
     }
 
     // Handle leftover buffer
     if (buffer.trim()) {
-        yield JSON.parse(buffer);
+        try {
+            yield JSON.parse(buffer);
+        } catch (e) {
+            // ignore final partial
+        }
     }
 }
 
@@ -39,13 +48,13 @@ export class NDJSONStreamParser {
 
     processChunk(chunk: string): void {
         this.buffer += chunk;
-        
+
         // Handle both \n and \r\n line endings
         const lines = this.buffer.split(/\r?\n/);
-        
+
         // Keep the last partial line in the buffer
         this.buffer = lines.pop() || '';
-        
+
         // Process complete lines
         for (const line of lines) {
             if (line.trim()) {
@@ -65,7 +74,7 @@ export function createRepairingJSONParser() {
     let buffer = '';
 
     /* util – try JSON.parse without crashing -------------------------- */
-    const parse = (str: string) => { try { return JSON.parse(str); } catch { 
+    const parse = (str: string) => { try { return JSON.parse(str); } catch {
         // pass
     } };
 
@@ -152,16 +161,16 @@ export function createRepairingJSONParser() {
 
             if (obj) return obj;
 
-            txt = closeStrings(txt); 
+            txt = closeStrings(txt);
             obj = parse(txt)
             if (obj) return obj;
-            txt = stripCommas(txt); 
+            txt = stripCommas(txt);
             obj = parse(txt)
             if (obj) return obj;
             txt = balanceBrackets(txt);
             obj = parse(txt)
             if (obj) return obj;
-            txt = fixKeys(txt); 
+            txt = fixKeys(txt);
             obj = parse(txt)
             if (obj) return obj;
 

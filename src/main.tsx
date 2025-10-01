@@ -5,6 +5,7 @@ import { initSentry } from './utils/sentry';
 
 import { routes } from './routes.ts';
 import './index.css';
+import './themes/active-theme.css';
 
 // Initialize Sentry before rendering
 initSentry();

@@ -1,21 +1,37 @@
-export function CloudflareLogo(props: React.SVGProps<SVGSVGElement> & { color1?: string, color2?: string}) {
+export function PixelCubeLogo(props: React.SVGProps<SVGSVGElement> & { primaryColor?: string; secondaryColor?: string }) {
+	const primary = props.primaryColor ?? 'var(--color-accent)';
+	const secondary = props.secondaryColor ?? 'color-mix(in oklch, var(--color-accent) 70%, var(--color-text-inverted) 30%)';
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
-			// width={36}
-			// height={16}
 			viewBox="0 0 36 16"
 			fill="none"
 			{...props}
 		>
-			<path
-				fill={props.color1 ?? "#F6821F"}
-				d="m24.156 15.775.181-.626c.216-.744.136-1.433-.227-1.938-.332-.466-.887-.74-1.56-.772l-12.76-.162a.253.253 0 0 1-.2-.107.258.258 0 0 1-.028-.23.34.34 0 0 1 .296-.226l12.878-.164c1.527-.07 3.181-1.31 3.76-2.82l.735-1.92a.447.447 0 0 0 .02-.253 8.386 8.386 0 0 0-16.124-.869 3.763 3.763 0 0 0-2.649-.733 3.778 3.778 0 0 0-3.27 4.688 5.366 5.366 0 0 0-5.15 6.139.25.25 0 0 0 .245.215L23.86 16h.006a.31.31 0 0 0 .291-.225Z"
-			/>
-			<path
-				fill={props.color2 ?? "#FBAD41"}
-				d="M28.408 6.95c-.119 0-.236.003-.354.009A.197.197 0 0 0 28 6.97a.201.201 0 0 0-.128.135l-.502 1.733c-.216.745-.136 1.432.226 1.938.333.466.888.74 1.561.772l2.72.164a.245.245 0 0 1 .236.217c.005.04 0 .081-.013.12a.34.34 0 0 1-.296.225l-2.826.164c-1.535.07-3.188 1.31-3.767 2.82l-.204.534a.15.15 0 0 0 .015.137.151.151 0 0 0 .12.068h9.73a.259.259 0 0 0 .25-.187 6.973 6.973 0 0 0-6.714-8.861Z"
-			/>
+			{/* Base grid of small cubes forming a larger isometric cube */}
+			<g transform="translate(8,2)">
+				{/* Left column */}
+				<rect x="0" y="6" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="0" y="8" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="0" y="10" width="2" height="2" rx="0.2" fill={secondary} />
+
+				{/* Middle column */}
+				<rect x="2.5" y="4" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="2.5" y="6" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="2.5" y="8" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="2.5" y="10" width="2" height="2" rx="0.2" fill={secondary} />
+
+				{/* Right column */}
+				<rect x="5" y="2" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="5" y="4" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="5" y="6" width="2" height="2" rx="0.2" fill={secondary} />
+				<rect x="5" y="8" width="2" height="2" rx="0.2" fill={secondary} />
+
+				{/* Highlighted building cubes */}
+				<rect x="2.5" y="2" width="2" height="2" rx="0.2" fill={primary} />
+				<rect x="5" y="0" width="2" height="2" rx="0.2" fill={primary} />
+				<rect x="7.5" y="2" width="2" height="2" rx="0.2" fill={primary} />
+			</g>
 		</svg>
 	);
 }
