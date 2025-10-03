@@ -222,18 +222,28 @@ export class SandboxSdkClient extends BaseSandboxService {
     }
 
     async downloadTemplate(templateName: string, downloadDir?: string) : Promise<ArrayBuffer> {
-        // Fetch the zip file from R2
+        // Try R2 first
         const downloadUrl = downloadDir ? `${downloadDir}/${templateName}.zip` : `${templateName}.zip`;
         this.logger.info(`Fetching object: ${downloadUrl} from R2 bucket`);
         const r2Object = await env.TEMPLATES_BUCKET.get(downloadUrl);
 
-        if (!r2Object) {
-            throw new Error(`Object '${downloadUrl}' not found in bucket`);
+        if (r2Object) {
+            const zipData = await r2Object.arrayBuffer();
+            this.logger.info(`Downloaded zip file from R2 (${zipData.byteLength} bytes)`);
+            return zipData;
         }
 
-        const zipData = await r2Object.arrayBuffer();
-
-        this.logger.info(`Downloaded zip file (${zipData.byteLength} bytes)`);
+        // Fallback to GitHub raw zip if R2 missing
+        const baseRepo = env.TEMPLATES_REPOSITORY || 'https://raw.githubusercontent.com/cloudflare/vibesdk-templates/main';
+        // Expect zips in /build/<name>.zip in the repo
+        const ghUrl = `${baseRepo.replace(/\.git$/, '')}/build/${templateName}.zip`;
+        this.logger.info(`R2 missing; downloading template from fallback: ${ghUrl}`);
+        const ghResp = await fetch(ghUrl);
+        if (!ghResp.ok) {
+            throw new Error(`Template zip not found in R2 or fallback: ${templateName}.zip (${ghResp.status} ${ghResp.statusText})`);
+        }
+        const zipData = await ghResp.arrayBuffer();
+        this.logger.info(`Downloaded zip file from fallback (${zipData.byteLength} bytes)`);
         return zipData;
     }
 
